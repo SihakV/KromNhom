@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue';
 import { api } from '../services/api';
-import type { TeamMemberWithGoals, TeamStatistics, MoodType, CreateGoalRequest, MoodUpdateRequest } from '../types';
+import type { TeamMemberWithGoals, TeamStatistics, MoodType, CreateGoalRequest, MoodUpdateRequest, CreateTeamMemberRequest } from '../types';
 import { getMoodEmoji } from '../types';
 
 // Simple global refs - this will work
@@ -179,12 +179,17 @@ export function useTeamStore() {
 
       // Update local statistics
       if (statistics.value) {
-        statistics.value.totalGoals++;
-        // Recalculate percentage
-        statistics.value.completionPercentage = Math.round(
-          (statistics.value.completedGoals / statistics.value.totalGoals) * 100 * 10
+        const newTotalGoals = statistics.value.totalGoals + 1;
+        const newCompletionPercentage = Math.round(
+          (statistics.value.completedGoals / newTotalGoals) * 100 * 10
         ) / 10;
-        statistics.value.lastUpdated = new Date().toISOString();
+        
+        statistics.value = {
+          ...statistics.value,
+          totalGoals: newTotalGoals,
+          completionPercentage: newCompletionPercentage,
+          lastUpdated: new Date().toISOString(),
+        };
       }
 
       try {
@@ -206,11 +211,17 @@ export function useTeamStore() {
         
         // Revert statistics
         if (statistics.value) {
-          statistics.value.totalGoals--;
-          statistics.value.completionPercentage = statistics.value.totalGoals > 0 
-            ? Math.round((statistics.value.completedGoals / statistics.value.totalGoals) * 100 * 10) / 10
+          const newTotalGoals = statistics.value.totalGoals - 1;
+          const newCompletionPercentage = newTotalGoals > 0 
+            ? Math.round((statistics.value.completedGoals / newTotalGoals) * 100 * 10) / 10
             : 0;
-          statistics.value.lastUpdated = new Date().toISOString();
+            
+          statistics.value = {
+            ...statistics.value,
+            totalGoals: newTotalGoals,
+            completionPercentage: newCompletionPercentage,
+            lastUpdated: new Date().toISOString(),
+          };
         }
         throw err;
       }
@@ -248,19 +259,19 @@ export function useTeamStore() {
 
       // Update local statistics
       if (statistics.value) {
-        statistics.value.totalGoals--;
-        
-        // If the deleted goal was completed, also decrease completed count
-        if (removedGoal.isCompleted) {
-          statistics.value.completedGoals--;
-        }
-        
-        // Recalculate percentage
-        statistics.value.completionPercentage = statistics.value.totalGoals > 0 
-          ? Math.round((statistics.value.completedGoals / statistics.value.totalGoals) * 100 * 10) / 10
+        const newTotalGoals = statistics.value.totalGoals - 1;
+        const newCompletedGoals = removedGoal.isCompleted ? statistics.value.completedGoals - 1 : statistics.value.completedGoals;
+        const newCompletionPercentage = newTotalGoals > 0 
+          ? Math.round((newCompletedGoals / newTotalGoals) * 100 * 10) / 10
           : 0;
           
-        statistics.value.lastUpdated = new Date().toISOString();
+        statistics.value = {
+            ...statistics.value,
+            totalGoals: newTotalGoals,
+            completedGoals: newCompletedGoals,
+            completionPercentage: newCompletionPercentage,
+            lastUpdated: new Date().toISOString(),
+        };
       }
 
       // API call in background
@@ -272,17 +283,8 @@ export function useTeamStore() {
           targetMember.goals.splice(goalIndex, 0, removedGoal); // Re-insert at original position
         }
         
-        // Revert statistics
-        if (statistics.value) {
-          statistics.value.totalGoals++;
-          if (removedGoal.isCompleted) {
-            statistics.value.completedGoals++;
-          }
-          statistics.value.completionPercentage = Math.round(
-            (statistics.value.completedGoals / statistics.value.totalGoals) * 100 * 10
-          ) / 10;
-          statistics.value.lastUpdated = new Date().toISOString();
-        }
+        // Revert statistics - a full refresh is easier here
+        refreshStatistics();
       });
       
       return true;
@@ -292,7 +294,7 @@ export function useTeamStore() {
     }
   };
 
-  const addMember = async (memberRequest: { name: string; currentMood: MoodType }) => {
+  const addMember = async (memberRequest: CreateTeamMemberRequest) => {
     try {
       // Optimistic update - add member to local state immediately
       const tempMember = {
@@ -308,32 +310,30 @@ export function useTeamStore() {
 
       // Update local statistics
       if (statistics.value) {
-        statistics.value.teamMemberCount++;
-        
-        // Update mood distribution
-        if (statistics.value.moodDistribution[memberRequest.currentMood]) {
-          statistics.value.moodDistribution[memberRequest.currentMood]++;
+        const newMoodDistribution = { ...statistics.value.moodDistribution };
+        if (newMoodDistribution[memberRequest.currentMood]) {
+          newMoodDistribution[memberRequest.currentMood]++;
         } else {
-          statistics.value.moodDistribution[memberRequest.currentMood] = 1;
+          newMoodDistribution[memberRequest.currentMood] = 1;
         }
-        
-        statistics.value.lastUpdated = new Date().toISOString();
+
+        statistics.value = {
+          ...statistics.value,
+          teamMemberCount: statistics.value.teamMemberCount + 1,
+          moodDistribution: newMoodDistribution,
+          lastUpdated: new Date().toISOString(),
+        };
       }
 
-      // API call in background
+      // API call
       try {
-        // For now, we'll simulate the API call
-        // TODO: Implement actual API endpoint for creating members
-        console.log('Member created:', memberRequest);
+        const realMember = await api.createTeamMember(memberRequest);
         
         // Replace temp member with real data from server
-        // In a real implementation, you'd get the real ID from the API response
         const memberIndex = teamMembers.value.findIndex(m => m.id === tempMember.id);
         if (memberIndex !== -1) {
-          teamMembers.value[memberIndex] = {
-            ...tempMember,
-            id: Math.floor(Math.random() * 1000) + 1000 // Simulate real ID
-          };
+          // Ensure the object has the `goals` property to be reactive
+          teamMembers.value[memberIndex] = { ...realMember, goals: [] };
         }
         
       } catch (err) {
@@ -346,14 +346,19 @@ export function useTeamStore() {
         
         // Revert statistics
         if (statistics.value) {
-          statistics.value.teamMemberCount--;
-          if (statistics.value.moodDistribution[memberRequest.currentMood]) {
-            statistics.value.moodDistribution[memberRequest.currentMood]--;
-            if (statistics.value.moodDistribution[memberRequest.currentMood] <= 0) {
-              delete statistics.value.moodDistribution[memberRequest.currentMood];
+            const newMoodDistribution = { ...statistics.value.moodDistribution };
+            if (newMoodDistribution[memberRequest.currentMood]) {
+                newMoodDistribution[memberRequest.currentMood]--;
+                if (newMoodDistribution[memberRequest.currentMood] <= 0) {
+                    delete newMoodDistribution[memberRequest.currentMood];
+                }
             }
-          }
-          statistics.value.lastUpdated = new Date().toISOString();
+            statistics.value = {
+                ...statistics.value,
+                teamMemberCount: statistics.value.teamMemberCount - 1,
+                moodDistribution: newMoodDistribution,
+                lastUpdated: new Date().toISOString(),
+            };
         }
         throw err;
       }
@@ -365,6 +370,56 @@ export function useTeamStore() {
     }
   };
 
+  const deleteMember = async (teamMemberId: number) => {
+    const memberIndex = teamMembers.value.findIndex(m => m.id === teamMemberId);
+    if (memberIndex === -1) {
+      throw new Error('Team member not found');
+    }
+
+    const removedMember = teamMembers.value[memberIndex];
+    
+    // Optimistic update
+    teamMembers.value.splice(memberIndex, 1);
+
+    // Update local statistics
+    if (statistics.value) {
+      const newMoodDistribution = { ...statistics.value.moodDistribution };
+      if (newMoodDistribution[removedMember.currentMood]) {
+        newMoodDistribution[removedMember.currentMood]--;
+        if (newMoodDistribution[removedMember.currentMood] <= 0) {
+          delete newMoodDistribution[removedMember.currentMood];
+        }
+      }
+
+      const newTotalGoals = statistics.value.totalGoals - removedMember.goals.length;
+      const newCompletedGoals = statistics.value.completedGoals - removedMember.goals.filter(g => g.isCompleted).length;
+      const newCompletionPercentage = newTotalGoals > 0
+        ? Math.round((newCompletedGoals / newTotalGoals) * 100 * 10) / 10
+        : 0;
+
+      statistics.value = {
+        ...statistics.value,
+        teamMemberCount: statistics.value.teamMemberCount - 1,
+        totalGoals: newTotalGoals,
+        completedGoals: newCompletedGoals,
+        moodDistribution: newMoodDistribution,
+        completionPercentage: newCompletionPercentage,
+        lastUpdated: new Date().toISOString(),
+      };
+    }
+
+    try {
+      await api.deleteTeamMember(teamMemberId);
+    } catch (err) {
+      console.error('Error deleting member on server:', err);
+      // Revert optimistic update
+      teamMembers.value.splice(memberIndex, 0, removedMember);
+      // A full statistics refresh is easier and safer here
+      await refreshStatistics(); 
+      throw err;
+    }
+  };
+
   const getMemberById = (id: number): TeamMemberWithGoals | undefined => {
     return teamMembers.value.find(member => member.id === id);
   };
@@ -372,40 +427,45 @@ export function useTeamStore() {
   // Local statistics update helpers (no server calls)
   const updateLocalMoodStatistics = (oldMood: MoodType | undefined, newMood: MoodType) => {
     if (!statistics.value) return;
-    
+
+    const newMoodDistribution = { ...statistics.value.moodDistribution };
+
     // Decrease old mood count
-    if (oldMood && statistics.value.moodDistribution[oldMood]) {
-      statistics.value.moodDistribution[oldMood]--;
-      if (statistics.value.moodDistribution[oldMood] <= 0) {
-        delete statistics.value.moodDistribution[oldMood];
+    if (oldMood && newMoodDistribution[oldMood]) {
+      newMoodDistribution[oldMood]--;
+      if (newMoodDistribution[oldMood] <= 0) {
+        delete newMoodDistribution[oldMood];
       }
     }
     
     // Increase new mood count
-    if (statistics.value.moodDistribution[newMood]) {
-      statistics.value.moodDistribution[newMood]++;
+    if (newMoodDistribution[newMood]) {
+      newMoodDistribution[newMood]++;
     } else {
-      statistics.value.moodDistribution[newMood] = 1;
+      newMoodDistribution[newMood] = 1;
     }
-    
-    // Update timestamp
-    statistics.value.lastUpdated = new Date().toISOString();
+
+    statistics.value = {
+      ...statistics.value,
+      moodDistribution: newMoodDistribution,
+      lastUpdated: new Date().toISOString(),
+    };
   };
 
   const updateLocalGoalStatistics = (completedGoalsDelta: number) => {
     if (!statistics.value) return;
-    
-    statistics.value.completedGoals += completedGoalsDelta;
-    
-    // Recalculate percentage
-    if (statistics.value.totalGoals > 0) {
-      statistics.value.completionPercentage = Math.round(
-        (statistics.value.completedGoals / statistics.value.totalGoals) * 100 * 10
-      ) / 10; // Round to 1 decimal place
-    }
-    
-    // Update timestamp
-    statistics.value.lastUpdated = new Date().toISOString();
+
+    const newCompleted = statistics.value.completedGoals + completedGoalsDelta;
+    const newPercentage = statistics.value.totalGoals > 0
+      ? Math.round((newCompleted / statistics.value.totalGoals) * 100 * 10) / 10
+      : 0;
+
+    statistics.value = {
+      ...statistics.value,
+      completedGoals: newCompleted,
+      completionPercentage: newPercentage,
+      lastUpdated: new Date().toISOString(),
+    };
   };
 
   const getMoodDistributionWithEmojis = computed(() => {
@@ -445,6 +505,7 @@ export function useTeamStore() {
     addGoal,
     addMember,
     deleteGoal,
+    deleteMember,
     getMemberById,
     
     // Utilities

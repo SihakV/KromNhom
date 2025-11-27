@@ -122,6 +122,29 @@ public class TeamService : ITeamService
         return affectedRows > 0;
     }
 
+    public async Task<TeamMember> CreateTeamMemberAsync(CreateTeamMemberRequest request)
+    {
+        using var connection = await _databaseService.GetConnectionAsync();
+
+        var sql = @"
+            INSERT INTO TeamMembers (Name, CurrentMood, CreatedAt, UpdatedAt)
+            VALUES (@Name, @CurrentMood, GETUTCDATE(), GETUTCDATE());
+            SELECT Id, Name, CurrentMood, CreatedAt, UpdatedAt FROM TeamMembers WHERE Id = SCOPE_IDENTITY();";
+        
+        var newMember = await connection.QuerySingleAsync<TeamMember>(sql, new { request.Name, request.CurrentMood });
+        return newMember;
+    }
+
+    public async Task<bool> DeleteTeamMemberAsync(int teamMemberId)
+    {
+        using var connection = await _databaseService.GetConnectionAsync();
+        
+        var sql = "DELETE FROM TeamMembers WHERE Id = @TeamMemberId";
+        
+        var affectedRows = await connection.ExecuteAsync(sql, new { TeamMemberId = teamMemberId });
+        return affectedRows > 0;
+    }
+
     public async Task<TeamStatistics> GetTeamStatisticsAsync()
     {
         using var connection = await _databaseService.GetConnectionAsync();

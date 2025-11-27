@@ -35,10 +35,22 @@ export const api = {
     return response.data.data || [];
   },
 
+  async createTeamMember(memberRequest: CreateTeamMemberRequest): Promise<TeamMember> {
+    const response = await apiClient.post<ApiResponse<TeamMember>>(API_ENDPOINTS.TEAM_MEMBERS, memberRequest);
+    return response.data.data!;
+  },
+
   async updateMood(teamMemberId: number, mood: MoodUpdateRequest): Promise<boolean> {
     const response = await apiClient.put<ApiResponse<boolean>>(
       API_ENDPOINTS.MOOD_UPDATE(teamMemberId),
       mood
+    );
+    return response.data.success;
+  },
+
+  async deleteTeamMember(teamMemberId: number): Promise<boolean> {
+    const response = await apiClient.delete<ApiResponse<boolean>>(
+      API_ENDPOINTS.DELETE_TEAM_MEMBER(teamMemberId)
     );
     return response.data.success;
   },

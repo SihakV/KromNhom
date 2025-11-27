@@ -47,6 +47,11 @@ export interface CreateGoalRequest {
   description: string;
 }
 
+export interface CreateTeamMemberRequest {
+  name: string;
+  currentMood: MoodType;
+}
+
 // API Response wrappers
 export interface ApiResponse<T> {
   success: boolean;
@@ -71,6 +76,7 @@ export const getMoodEmoji = (mood: MoodType): string => {
 // API endpoints configuration
 export const API_ENDPOINTS = {
   TEAM_MEMBERS: '/api/teammembers',
+  DELETE_TEAM_MEMBER: (id: number) => `/api/teammembers/${id}`,
   MOOD_UPDATE: (id: number) => `/api/teammembers/${id}/mood`,
   GOALS: '/api/goals',
   COMPLETE_GOAL: (id: number) => `/api/goals/${id}/complete`,

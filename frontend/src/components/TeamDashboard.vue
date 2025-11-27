@@ -44,6 +44,7 @@
           @toggle-goal="handleToggleGoal"
           @delete-goal="handleDeleteGoal"
           @open-mood-selector="handleOpenMoodSelector"
+          @delete-member="handleDeleteMember"
         />
       </div>
 
@@ -122,6 +123,15 @@ const handleDeleteGoal = async (goalId: number) => {
     await store.deleteGoal(goalId);
   } catch (err) {
     console.error('Error deleting goal:', err);
+    // Could add toast notification here
+  }
+};
+
+const handleDeleteMember = async (memberId: number) => {
+  try {
+    await store.deleteMember(memberId);
+  } catch (err) {
+    console.error('Error deleting member:', err);
     // Could add toast notification here
   }
 };

@@ -18,22 +18,20 @@
           <div class="stat">
             <div class="stat-title">Completion Rate</div>
             <div class="stat-value text-primary text-4xl font-mono">
-              {{ statistics.completionPercentage }}%
+              {{ animatedPercentage.toFixed(1) }}%
             </div>
             <div class="stat-desc">
-              {{ statistics.completedGoals }} of {{ statistics.totalGoals }} goals completed
+              {{ Math.round(animatedCompletedGoals) }} of {{ statistics.totalGoals }} goals completed
             </div>
           </div>
 
           <!-- Progress Bar -->
           <div class="w-full">
             <div class="flex justify-between text-xs mb-2">
-              <span class="font-medium">Progress</span>
-              <span class="badge badge-outline badge-sm font-mono whitespace-nowrap px-2">{{ statistics.completedGoals }}/{{ statistics.totalGoals }}</span>
-            </div>
+              <span class="font-medium">Progress</span>            </div>
             <progress 
               class="progress progress-primary w-full h-3" 
-              :value="statistics.completedGoals" 
+              :value="animatedCompletedGoals" 
               :max="statistics.totalGoals"
             ></progress>
           </div>
@@ -98,6 +96,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch } from 'vue';
+import { useTransition, TransitionPresets } from '@vueuse/core';
 import type { TeamStatistics, MoodType } from '../types';
 import { getMoodEmoji, MOOD_OPTIONS } from '../types';
 
@@ -107,6 +107,33 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+// Source refs for the target animation values
+const sourcePercentage = ref(0);
+const sourceCompletedGoals = ref(0);
+
+// Transitioned refs that will be animated
+const animatedPercentage = useTransition(sourcePercentage, {
+  duration: 800,
+  transition: TransitionPresets.easeOutCubic,
+});
+
+const animatedCompletedGoals = useTransition(sourceCompletedGoals, {
+  duration: 800,
+  transition: TransitionPresets.easeOutCubic,
+});
+
+// Watch for changes in the statistics and update the source refs
+watch(() => props.statistics, (newStats) => {
+  if (newStats) {
+    sourcePercentage.value = newStats.completionPercentage;
+    sourceCompletedGoals.value = newStats.completedGoals;
+  } else {
+    sourcePercentage.value = 0;
+    sourceCompletedGoals.value = 0;
+  }
+}, { immediate: true });
+
 
 const formatLastUpdated = (dateString: string): string => {
   try {

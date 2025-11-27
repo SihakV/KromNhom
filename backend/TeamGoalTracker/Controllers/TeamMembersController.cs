@@ -38,6 +38,61 @@ public class TeamMembersController : ControllerBase
         }
     }
 
+    [HttpPost]
+    public async Task<ActionResult<ApiResponse<TeamMember>>> CreateTeamMember([FromBody] CreateTeamMemberRequest request)
+    {
+        try
+        {
+            var newMember = await _teamService.CreateTeamMemberAsync(request);
+            return CreatedAtAction(nameof(GetTeamMembers), new { id = newMember.Id }, new ApiResponse<TeamMember>
+            {
+                Success = true,
+                Data = newMember,
+                Message = "Team member created successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<TeamMember>
+            {
+                Success = false,
+                Message = $"Error creating team member: {ex.Message}"
+            });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteTeamMember(int id)
+    {
+        try
+        {
+            var success = await _teamService.DeleteTeamMemberAsync(id);
+            if (!success)
+            {
+                return NotFound(new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Team member not found"
+                });
+            }
+
+            return Ok(new ApiResponse<bool>
+            {
+                Success = true,
+                Data = true,
+                Message = "Team member deleted successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse<bool>
+            {
+                Success = false,
+                Message = $"Error deleting team member: {ex.Message}"
+            });
+        }
+    }
+
     [HttpPut("{id}/mood")]
     public async Task<ActionResult<ApiResponse<bool>>> UpdateMood(int id, [FromBody] MoodUpdateRequest request)
     {

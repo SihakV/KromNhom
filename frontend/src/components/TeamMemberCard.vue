@@ -52,7 +52,17 @@
       </div>
 
       <!-- Quick Actions -->
-      <div class="card-actions justify-end mt-4 pt-2 border-t border-base-300">
+      <div class="card-actions justify-between items-center mt-4 pt-2 border-t border-base-300">
+        <button
+          class="btn btn-ghost btn-sm text-error hover:bg-error/20"
+          @click.stop="confirmDeleteMember"
+          title="Delete member"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          Delete Member
+        </button>
         <button 
           class="btn btn-sm btn-ghost"
           @click="$emit('openMoodSelector', member.id)"
@@ -77,6 +87,7 @@ interface Emits {
   (e: 'toggleGoal', goalId: number, isCompleted: boolean): void;
   (e: 'deleteGoal', goalId: number): void;
   (e: 'openMoodSelector', memberId: number): void;
+  (e: 'deleteMember', memberId: number): void;
 }
 
 const props = defineProps<Props>();
@@ -95,5 +106,11 @@ const toggleGoalCompletion = (goal: Goal) => {
 
 const deleteGoal = (goalId: number) => {
   emit('deleteGoal', goalId);
+};
+
+const confirmDeleteMember = () => {
+  if (window.confirm(`Are you sure you want to delete ${props.member.name}? This action cannot be undone.`)) {
+    emit('deleteMember', props.member.id);
+  }
 };
 </script>

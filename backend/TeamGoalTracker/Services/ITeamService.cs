@@ -10,5 +10,7 @@ public interface ITeamService
     Task<Goal> CreateGoalAsync(CreateGoalRequest request);
     Task<bool> CompleteGoalAsync(int goalId, bool isCompleted);
     Task<bool> DeleteGoalAsync(int goalId);
+    Task<TeamMember> CreateTeamMemberAsync(CreateTeamMemberRequest request);
+    Task<bool> DeleteTeamMemberAsync(int teamMemberId);
     Task<TeamStatistics> GetTeamStatisticsAsync();
 }
