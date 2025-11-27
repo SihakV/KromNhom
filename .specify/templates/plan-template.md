@@ -31,7 +31,11 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] **KISS Principle**: Solution approach is the simplest that meets requirements (no over-engineering)
+- [ ] **Single Responsibility**: Each planned component has one clear responsibility
+- [ ] **Dependency Inversion**: External dependencies abstracted through interfaces
+- [ ] **Open/Closed**: Design allows extension without modifying existing code
+- [ ] **Modular Architecture**: Clear module boundaries with minimal coupling identified
 
 ## Project Structure
 

@@ -20,17 +20,20 @@
   ============================================================================
 -->
 
-## [Category 1]
+## Code Quality Compliance
 
-- [ ] CHK001 First checklist item with clear action
-- [ ] CHK002 Second checklist item
-- [ ] CHK003 Third checklist item
+- [ ] CHK001 KISS Principle: Implementation uses simplest approach that meets requirements
+- [ ] CHK002 Single Responsibility: Each component has one clear responsibility
+- [ ] CHK003 Dependency Inversion: External dependencies abstracted through interfaces
+- [ ] CHK004 Open/Closed: New functionality added through extension, not modification
+- [ ] CHK005 Modular Architecture: Clear module boundaries with minimal coupling
 
-## [Category 2]
+## Implementation Verification
 
-- [ ] CHK004 Another category item
-- [ ] CHK005 Item with specific criteria
-- [ ] CHK006 Final item in this category
+- [ ] CHK006 No over-engineering or unnecessary abstractions
+- [ ] CHK007 Clear separation between data, business logic, and presentation layers
+- [ ] CHK008 Interface-based design for cross-layer communication
+- [ ] CHK009 Consistent naming aligned with domain language
 
 ## Notes
 

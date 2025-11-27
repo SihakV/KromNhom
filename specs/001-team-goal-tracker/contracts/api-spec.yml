@@ -1,0 +1,372 @@
+openapi: 3.0.3
+info:
+  title: Team Daily Goal Tracker API
+  description: REST API for tracking team goals and moods
+  version: 1.0.0
+  contact:
+    name: KromNhom Development Team
+
+servers:
+  - url: http://localhost:5000/api
+    description: Local development server
+
+paths:
+  /teammembers:
+    get:
+      summary: Get all team members with their goals and moods
+      description: Retrieves complete team status for dashboard display
+      responses:
+        '200':
+          description: Team members retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TeamMemberWithGoals'
+        '500':
+          description: Internal server error
+
+  /teammembers/{id}/mood:
+    put:
+      summary: Update team member's mood
+      description: Updates the current mood status for a specific team member
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Team member ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoodUpdateRequest'
+      responses:
+        '200':
+          description: Mood updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMember'
+        '400':
+          description: Invalid mood value
+        '404':
+          description: Team member not found
+        '500':
+          description: Internal server error
+
+  /goals:
+    post:
+      summary: Add a new goal
+      description: Creates a new daily goal for a team member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGoalRequest'
+      responses:
+        '201':
+          description: Goal created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+        '400':
+          description: Invalid request data
+        '404':
+          description: Team member not found
+        '500':
+          description: Internal server error
+
+  /goals/{id}/complete:
+    put:
+      summary: Toggle goal completion status
+      description: Marks a goal as complete or incomplete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Goal ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteGoalRequest'
+      responses:
+        '200':
+          description: Goal status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+        '404':
+          description: Goal not found
+        '500':
+          description: Internal server error
+
+  /goals/{id}:
+    delete:
+      summary: Delete a goal
+      description: Removes a goal from the system
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Goal ID
+      responses:
+        '204':
+          description: Goal deleted successfully
+        '404':
+          description: Goal not found
+        '500':
+          description: Internal server error
+
+  /stats:
+    get:
+      summary: Get team statistics
+      description: Retrieves aggregated team goal completion and mood statistics
+      responses:
+        '200':
+          description: Team statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamStatistics'
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    TeamMember:
+      type: object
+      required:
+        - id
+        - name
+        - currentMood
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          description: Unique identifier
+          example: 1
+        name:
+          type: string
+          maxLength: 50
+          description: Team member display name
+          example: "Alice Johnson"
+        currentMood:
+          type: string
+          enum: ["😀", "😊", "😐", "😞", "😤"]
+          description: Current mood emoji
+          example: "😊"
+        createdAt:
+          type: string
+          format: date-time
+          description: Record creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last modification timestamp
+
+    Goal:
+      type: object
+      required:
+        - id
+        - teamMemberId
+        - description
+        - isCompleted
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: Unique identifier
+          example: 1
+        teamMemberId:
+          type: integer
+          description: ID of the team member this goal belongs to
+          example: 1
+        description:
+          type: string
+          maxLength: 200
+          description: Goal description text
+          example: "Complete user authentication module"
+        isCompleted:
+          type: boolean
+          description: Whether the goal is completed
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          description: Goal creation timestamp
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Goal completion timestamp
+
+    TeamMemberWithGoals:
+      type: object
+      required:
+        - id
+        - name
+        - currentMood
+        - goals
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Alice Johnson"
+        currentMood:
+          type: string
+          enum: ["😀", "😊", "😐", "😞", "😤"]
+          example: "😊"
+        goals:
+          type: array
+          items:
+            $ref: '#/components/schemas/Goal'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TeamStatistics:
+      type: object
+      required:
+        - totalGoals
+        - completedGoals
+        - completionPercentage
+        - moodDistribution
+        - teamMemberCount
+        - lastUpdated
+      properties:
+        totalGoals:
+          type: integer
+          description: Total number of goals across all team members
+          example: 15
+        completedGoals:
+          type: integer
+          description: Number of completed goals
+          example: 8
+        completionPercentage:
+          type: number
+          format: decimal
+          description: Percentage of completed goals
+          example: 53.33
+        moodDistribution:
+          type: object
+          description: Count of each mood across team members
+          properties:
+            "😀":
+              type: integer
+              example: 2
+            "😊":
+              type: integer
+              example: 3
+            "😐":
+              type: integer
+              example: 1
+            "😞":
+              type: integer
+              example: 1
+            "😤":
+              type: integer
+              example: 0
+        teamMemberCount:
+          type: integer
+          description: Total number of team members
+          example: 7
+        lastUpdated:
+          type: string
+          format: date-time
+          description: Timestamp when statistics were calculated
+
+    MoodUpdateRequest:
+      type: object
+      required:
+        - mood
+      properties:
+        mood:
+          type: string
+          enum: ["😀", "😊", "😐", "😞", "😤"]
+          description: New mood emoji
+          example: "😀"
+
+    CreateGoalRequest:
+      type: object
+      required:
+        - teamMemberId
+        - description
+      properties:
+        teamMemberId:
+          type: integer
+          description: ID of the team member to assign the goal to
+          example: 1
+        description:
+          type: string
+          maxLength: 200
+          description: Goal description
+          example: "Complete user authentication module"
+
+    CompleteGoalRequest:
+      type: object
+      required:
+        - isCompleted
+      properties:
+        isCompleted:
+          type: boolean
+          description: Whether the goal should be marked as completed
+          example: true
+
+  responses:
+    NotFound:
+      description: The specified resource was not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Resource not found"
+    
+    BadRequest:
+      description: Invalid request data
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Invalid request data"
+              details:
+                type: array
+                items:
+                  type: string
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Internal server error"

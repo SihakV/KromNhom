@@ -90,6 +90,13 @@
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
 
+### Code Quality Requirements
+
+- **CQ-001**: Implementation MUST follow SOLID principles with clear separation of concerns
+- **CQ-002**: Solution MUST use simplest approach that meets requirements (KISS principle)
+- **CQ-003**: Modules MUST have well-defined interfaces and minimal coupling
+- **CQ-004**: External dependencies MUST be abstracted through interfaces
+
 *Example of marking unclear requirements:*
 
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]

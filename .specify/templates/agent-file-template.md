@@ -20,6 +20,13 @@ Auto-generated from all feature plans. Last updated: [DATE]
 
 [LANGUAGE-SPECIFIC, ONLY FOR LANGUAGES IN USE]
 
+### Constitution Compliance
+
+All code must adhere to KromNhom Constitution principles:
+- KISS: Use simplest solution that works
+- SOLID: Single responsibility, Open/closed, Dependency inversion
+- Modular: Clear boundaries, minimal coupling, interface-based design
+
 ## Recent Changes
 
 [LAST 3 FEATURES AND WHAT THEY ADDED]
